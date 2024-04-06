@@ -1,0 +1,4 @@
+kesslergame==2.0.0
+numpy==1.26.2
+scikit_fuzzy==0.4.2
+Shapely==2.0.2
