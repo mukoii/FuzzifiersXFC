@@ -2,7 +2,7 @@ import time
 
 from kesslergame import Scenario, KesslerGame, GraphicsType, TrainerEnvironment
 # from KeyboardController import KeyboardController
-from test_controller import TestController
+from controller import Controller
 from actions.dodge import DodgeAgent
 
 def main(print_flag: bool = False):
@@ -90,4 +90,4 @@ if __name__ == '__main__':
     #     agent.update_var(e_reward)
     #     print(e_reward)
     main()
-        
+    

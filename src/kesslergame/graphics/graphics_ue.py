@@ -10,13 +10,14 @@ from typing import List
 from ..ship import Ship
 from ..asteroid import Asteroid
 from ..bullet import Bullet
+from ..mines import Mine
 from ..score import Score
 from ..scenario import Scenario
 from .graphics_base import KesslerGraphics
 
 
 class GraphicsUE(KesslerGraphics):
-    def __init__(self):
+    def __init__(self) -> None:
         # Create udp senders/receivers
         udp_host = 'localhost'
         udp_port = 12345
@@ -25,7 +26,7 @@ class GraphicsUE(KesslerGraphics):
         self.udp_recvr.bind(('localhost', 12346))
         self.udp_addr = (udp_host, udp_port)
 
-    def start(self, scenario: Scenario):
+    def start(self, scenario: Scenario) -> None:
         self.map_size = scenario.map_size
         ship_count = len(scenario.ships())
         team_count = len(np.unique([ship.team for ship in scenario.ships()]))
@@ -46,48 +47,59 @@ class GraphicsUE(KesslerGraphics):
         start_str += 'teams:' + str(team_count)
         self.udp_sock.sendto(start_str.encode('utf-8'), self.udp_addr)
 
-    def update(self, score: Score, ships: List[Ship], asteroids: List[Asteroid], bullets: List[Bullet]):
-        update_str = '::frame::'
+    def update(self, score: Score, ships: List[Ship], asteroids: List[Asteroid], bullets: List[Bullet], mines: List[Mine]) -> None:
+        update_parts = ['::frame::']
+
         for ship in ships:
-            update_str += 's(' + str(int(self.map_size[0]-ship.position[0])) + \
-                          ',' + str(int(ship.position[1])) + \
-                          ',' + str(int(180-ship.heading)) + \
-                          ',' + str(int(ship.radius)) + \
-                          ',' + str(int(ship.alive)) + \
-                          ',' + str(float(ship.respawn_time_left)) + \
-                          ');'
+            ship_part = 's({},{},{},{},{},{});'.format(
+                round(self.map_size[0] - ship.position[0]),
+                round(ship.position[1]),
+                round(180 - ship.heading),
+                round(ship.radius),
+                round(ship.alive),
+                float(ship.respawn_time_left)
+            )
+            update_parts.append(ship_part)
+
         for ast in asteroids:
-            update_str += 'a(' + str(int(self.map_size[0]-ast.position[0])) + \
-                          ',' + str(int(ast.position[1])) + \
-                          ',' + str(int(180-ast.angle)) + \
-                          ',' + str(int(ast.radius)) + \
-                          ',' + str(int(0.00)) + \
-                          ',' + str(int(0.00)) + \
-                          ');'
+            asteroid_part = 'a({},{},{},{},{},{});'.format(
+                round(self.map_size[0] - ast.position[0]),
+                round(ast.position[1]),
+                round(180 - ast.angle),
+                round(ast.radius),
+                0,
+                0
+            )
+            update_parts.append(asteroid_part)
+
         for bullet in bullets:
-            update_str += 'b(' + str(int(self.map_size[0]-bullet.position[0])) + \
-                          ',' + str(int(bullet.position[1])) + \
-                          ',' + str(int(180-bullet.heading)) + \
-                          ',' + str(int(bullet.length)) + \
-                          ',' + str(int(0.00)) + \
-                          ',' + str(int(0.00)) + \
-                          ');'
+            bullet_part = 'b({},{},{},{},{},{});'.format(
+                round(self.map_size[0] - bullet.position[0]),
+                round(bullet.position[1]),
+                round(180 - bullet.heading),
+                round(bullet.length),
+                0,
+                0
+            )
+            update_parts.append(bullet_part)
 
-        # Append scoreboard information to update_str
-        update_str += '::score::'
-        update_str += 'time;' + str(round(score.sim_time, 2)) + ';'
+        update_parts.append('::score::')
+        score_part = 'time;{};'.format(round(score.sim_time, 2))
+        update_parts.append(score_part)
+
         for team in score.teams:
-            update_str += 'team;' + str(int(team.team_id)) + \
-                          ',' + str(int(team.asteroids_hit)) + \
-                          ',' + str(int(team.lives_remaining)) + \
-                          ',' + str(int(team.bullets_remaining)) + \
-                          ',' + str(round(team.accuracy*100, 1)) + \
-                          ';'
+            team_part = 'team;{},{},{},{},{};'.format(
+                round(team.team_id),
+                round(team.asteroids_hit),
+                round(team.lives_remaining),
+                round(team.bullets_remaining),
+                round(team.accuracy * 100, 1)
+            )
+            update_parts.append(team_part)
 
-
-
+        update_str = ''.join(update_parts)
 
         self.udp_sock.sendto(update_str.encode('utf-8'), self.udp_addr)
 
-    def close(self):
+    def close(self) -> None:
         self.udp_sock.close()
